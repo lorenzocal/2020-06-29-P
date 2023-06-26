@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import it.polito.tdp.PremierLeague.model.Action;
 import it.polito.tdp.PremierLeague.model.Match;
+import it.polito.tdp.PremierLeague.model.Mese;
 import it.polito.tdp.PremierLeague.model.Player;
 
 public class PremierLeagueDAO {
@@ -89,4 +90,66 @@ public class PremierLeagueDAO {
 		}
 	}
 	
+	public List<Match> listAllMatchesMonth(Mese mese){
+		String sql = "SELECT m.MatchID, m.TeamHomeID, m.TeamAwayID, m.teamHomeFormation, m.teamAwayFormation, m.resultOfTeamHome, m.date, t1.Name, t2.Name "
+				+ "FROM Matches m, Teams t1, Teams t2 " 
+				+ "WHERE m.TeamHomeID = t1.TeamID AND m.TeamAwayID = t2.TeamID "
+				+ "AND MONTH(DATE) = ?";
+		List<Match> result = new ArrayList<Match>();
+		Connection conn = DBConnect.getConnection();
+
+		try {
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, mese.getNumeroMese());
+			ResultSet res = st.executeQuery();
+			while (res.next()) {
+
+				
+				Match match = new Match(res.getInt("m.MatchID"), res.getInt("m.TeamHomeID"), res.getInt("m.TeamAwayID"), res.getInt("m.teamHomeFormation"), 
+							res.getInt("m.teamAwayFormation"),res.getInt("m.resultOfTeamHome"), res.getTimestamp("m.date").toLocalDateTime(), res.getString("t1.Name"),res.getString("t2.Name"));
+				
+				
+				result.add(match);
+
+			}
+			conn.close();
+			return result;
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public Integer getEdgeWeight(Match m1, Match m2, Integer min){
+		String sql = "SELECT COUNT(DISTINCT a1.PlayerID) AS Result "
+				+ "FROM actions a1, actions a2 "
+				+ "WHERE a1.PlayerID = a2.PlayerID "
+				+ "AND a1.MatchID = ? "
+				+ "AND a2.MatchID = ? "
+				+ "AND a1.TimePlayed > ? "
+				+ "AND a2.TimePlayed > ?";
+		Integer result = 0;
+		Connection conn = DBConnect.getConnection();
+
+		try {
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, m1.getMatchID());
+			st.setInt(2, m2.getMatchID());
+			st.setInt(3, min);
+			st.setInt(4,min);
+			ResultSet res = st.executeQuery();
+			while (res.next()) {
+
+				result = res.getInt("Result");
+
+			}
+			conn.close();
+			return result;
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 }
